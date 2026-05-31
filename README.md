@@ -4,6 +4,7 @@
 [![Mathlib](https://img.shields.io/badge/Mathlib-v4.28.0-purple)](https://github.com/leanprover-community/mathlib4)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Proofs](https://img.shields.io/badge/proofs-proven%20%2F%200%20sorry-brightgreen)](SGD)
+[![Zenodo](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.20475583-blue)](https://zenodo.org/records/20475583)
 
 **sgd-lean: Formal Proofs of Bounded-Noise SGD Convergence in Lean 4**
 
@@ -76,9 +77,9 @@ The analysis uses a deterministic bounded-noise oracle (‖gₖ − ∇f(xₖ)�
 ## Paper
 
 **sgd-lean: Formal Proofs of Bounded-Noise SGD Convergence in Lean 4**
-Ben Cassie (2026). *Forthcoming.*
+Ben Cassie (2026). Companion paper: [paper.md](paper.md).
 
-DOI: *forthcoming (Zenodo).*
+DOI: https://doi.org/10.5281/zenodo.20475583
 
 ## Related work
 
