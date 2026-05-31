@@ -3,64 +3,93 @@
 [![Lean 4](https://img.shields.io/badge/Lean-4.28.0-blue)](https://lean-lang.org/)
 [![Mathlib](https://img.shields.io/badge/Mathlib-v4.28.0-purple)](https://github.com/leanprover-community/mathlib4)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Proofs](https://img.shields.io/badge/proofs-pending-lightgrey)](SGDLean)
+[![Proofs](https://img.shields.io/badge/proofs-proven%20%2F%200%20sorry-brightgreen)](SGD)
 
-Lean 4 formal proofs of stochastic gradient descent convergence: O(1/√k) rate for convex objectives.
+**sgd-lean: Formal Proofs of Bounded-Noise SGD Convergence in Lean 4**
 
-**Zero sorry statements.**
+Lean 4 formal proofs of stochastic gradient descent convergence under a deterministic bounded-noise oracle: a per-step distance bound and an O(1/√K) averaged-regret rate.
+
+**Zero sorry statements.** Standard axioms only (`propext`, `Classical.choice`, `Quot.sound`).
 
 ## Why it matters
 
-Stochastic gradient descent is the algorithm that trains nearly every large neural network in existence. Its convergence guarantee -- that noisy gradient updates still drive the objective toward a minimum at rate O(1/√k) -- is one of the most practically important results in optimisation theory. Yet the proof involves noise variance bounds, step size schedules, and telescoping arguments that are rarely stated with full precision.
+Stochastic gradient descent is the workhorse of modern machine learning, but its iterates use *noisy* gradients rather than the true gradient. The central question is whether that noise still allows convergence — and at what rate. For convex objectives the answer is the classic **O(1/√K)** rate on the averaged optimality gap.
 
-This library machine-checks the O(1/√k) convergence rate in Lean 4, extending [gradient-descent-lean](https://github.com/velvetmonkey/gradient-descent-lean) (O(1/k) deterministic rate) to the stochastic setting.
+This library machine-checks that rate in Lean 4. To stay within Mathlib's current capabilities, it uses a **deterministic bounded-noise model** rather than a fully stochastic one: each oracle gradient gₖ is only assumed to satisfy ‖gₖ − ∇f(xₖ)‖ ≤ σ. Mathlib lacks the conditional-expectation / filtration infrastructure needed to state and manipulate the stochastic (in-expectation) version, so the bounded-noise model is the faithful deterministic surrogate. It yields an O(1/√K) + O(σR) bound — the σR term is the irreducible worst-case-noise error that would vanish in expectation in the stochastic setting.
 
 ## Setting
 
-f : E → ℝ, E a real Hilbert space. f is L-smooth and convex.
-Noisy gradient oracle: g_k with ‖g_k - ∇f(x_k)‖ ≤ σ (bounded noise model).
-Step size: αₖ = c/√k.
-
-## Planned project structure
+A real inner product space `E`, with a convex, L-smooth objective f : E → ℝ, minimiser x*, and an abstract gradient map ∇f stated via first-order conditions (avoiding heavy differentiability infrastructure). The oracle is **deterministic bounded-noise**:
 
 ```
-SGDLean/
-├── Defs.lean       — NoisyOracle, step size schedule, SGD sequence
-├── NoisyOracle.lean — Per-step bound under bounded noise
-└── Convergence.lean — O(1/√k) convergence rate
-SGDLean.lean        — Root module
+‖g_k − ∇f(x_k)‖ ≤ σ
 ```
 
-## Planned theorem inventory
+The update is `x_{k+1} = x_k − α • g_k` with constant step size α > 0.
+
+## Main result
+
+Under bounded iterates ‖xₖ − x*‖ ≤ R with constant step α > 0:
+
+```
+(1/K) Σ_{k<K} (f(x_k) − f*) ≤ R²/(2αK) + σR + α(L²R² + σ²)
+```
+
+Setting α = c/√K balances the R²/(2αK) and α(L²R² + σ²) terms, giving the **O(1/√K)** rate (with the additive σR worst-case-noise floor).
+
+## Project structure
+
+```
+SGD/
+├── Defs.lean         — SGDSetup (convex L-smooth f, bounded-noise σ), first-order
+│                       conditions, gap_nonneg, sgd_step
+├── NoisyOracle.lean  — per-step distance bound: norm_sub_smul_sq,
+│                       inner_noisy_grad_ge, noisy_grad_norm_sq_le, sgd_step_bound
+└── Convergence.lean  — telescoping lemmas, SGDRun trajectory, sgd_convergence
+SGD.lean              — Root module
+```
+
+## Theorem inventory
+
+8 headline results.
 
 | # | Name | Statement |
 |---|------|-----------|
-| 1 | `sgd_step_bound` | Per-step distance bound under bounded noise |
-| 2 | `sgd_convergence` | (1/k) Σ f(xᵢ) - f* ≤ C/√k |
+| 1 | `norm_sub_smul_sq` | ‖a − α•b‖² = ‖a‖² − 2α⟪b,a⟫ + α²‖b‖² (squared-norm expansion) |
+| 2 | `inner_noisy_grad_ge` | ⟪g, x−x*⟫ ≥ (f(x)−f*) − σ‖x−x*‖ (convexity + Cauchy–Schwarz) |
+| 3 | `noisy_grad_norm_sq_le` | ‖g‖² ≤ 2L²‖x−x*‖² + 2σ² (noisy gradient norm bound) |
+| 4 | `sgd_step_bound` | ‖x′−x*‖² ≤ ‖x−x*‖² − 2α(f(x)−f*) + 2ασ‖x−x*‖ + α²(2L²‖x−x*‖²+2σ²) |
+| 5 | `telescope_sum_le` | Σ aₖ ≤ D(0) − D(K) + Σ bₖ when D(k+1) ≤ D(k) − aₖ + bₖ |
+| 6 | `telescope_sum_le'` | Σ aₖ ≤ D(0) + Σ bₖ (dropping − D(K) ≥ 0) |
+| 7 | `SGDRun.step_bound_uniform` | per-step bound with bounded iterates ‖xₖ−x*‖ ≤ R |
+| 8 | `sgd_convergence` | (1/K) Σ (f(xₖ)−f*) ≤ R²/(2αK) + σR + α(L²R²+σ²) — O(1/√K) |
 
-## Key technical highlights
+## Design note
 
-- Extends gradient-descent-lean infrastructure (L-smoothness, convexity, descent lemma)
-- Bounded noise model: ‖g_k - ∇f(x_k)‖ ≤ σ
-- Step size schedule αₖ = c/√k is the classical choice that balances noise and progress
-- Standard axioms only: `propext`, `Classical.choice`, `Quot.sound`
-- Zero `sorry`, zero `admit`
+The analysis uses a deterministic bounded-noise oracle (‖gₖ − ∇f(xₖ)‖ ≤ σ) rather than a stochastic one, because Mathlib does not yet provide the conditional-expectation / filtration machinery required for the in-expectation analysis. The objective's convexity and L-smoothness are stated as first-order conditions on an abstract gradient map, keeping the development self-contained and free of Fréchet-derivative bookkeeping while remaining valid over a general real inner product space.
 
 ## Dependencies
 
 - Lean 4.28.0
 - Mathlib v4.28.0
 
+## Paper
+
+**sgd-lean: Formal Proofs of Bounded-Noise SGD Convergence in Lean 4**
+Ben Cassie (2026). *Forthcoming.*
+
+DOI: *forthcoming (Zenodo).*
+
 ## Related work
 
-- [gradient-descent-lean](https://github.com/velvetmonkey/gradient-descent-lean) — Lean 4 deterministic gradient descent (O(1/k) rate)
+- [gradient-descent-lean](https://github.com/velvetmonkey/gradient-descent-lean) — Lean 4 gradient descent convergence (O(1/k) rate)
 - [nesterov-lean](https://github.com/velvetmonkey/nesterov-lean) — Lean 4 Nesterov accelerated gradient descent (O(1/k²) rate)
-- [projected-gd-lean](https://github.com/velvetmonkey/projected-gd-lean) — Lean 4 projected gradient descent
-- [kuramoto-lean](https://github.com/velvetmonkey/kuramoto-lean) — Lean 4 Kuramoto synchronisation
+- [subgradient-lean](https://github.com/velvetmonkey/subgradient-lean) — Lean 4 subgradient method convergence (O(1/√k) rate)
+- [mirror-descent-lean](https://github.com/velvetmonkey/mirror-descent-lean) — Lean 4 mirror descent with Bregman divergences (O(1/√K) rate)
 
 ## Acknowledgements
 
-Proofs in this library were generated using [Aristotle](https://aristotle.harmonic.fun), an AI proof assistant for Lean 4 and Mathlib.
+Proofs in this library were generated using [Aristotle](https://aristotle.harmonic.fun), an AI proof assistant for Lean 4 and Mathlib. The proof discipline — zero sorry, standard axioms only — was specified by the author and enforced by the Lean type checker.
 
 ## Author
 
