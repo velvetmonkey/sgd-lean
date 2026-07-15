@@ -4,4 +4,6 @@
 *.olean
 *.ilean
 *.trace
-lake-manifest.json
+# lake-manifest.json is Lake's LOCKFILE and is deliberately TRACKED. Un-committed,
+# a fresh clone resolves the moving-branch deps to whatever they are that day, so
+# the repo does not record what its proofs were checked against.
