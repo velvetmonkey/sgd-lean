@@ -1,5 +1,6 @@
 # sgd-lean
 
+[![thread](https://img.shields.io/badge/%F0%9F%A7%B5-how%20it%20works-1DA1F2)](https://x.com/thevelvetmonke)
 [![Lean 4](https://img.shields.io/badge/Lean-4.28.0-blue)](https://lean-lang.org/)
 [![Mathlib](https://img.shields.io/badge/Mathlib-v4.28.0-purple)](https://github.com/leanprover-community/mathlib4)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -12,7 +13,15 @@ Lean 4 formal proofs of stochastic gradient descent convergence under a determin
 
 **Zero sorry statements.** Standard axioms only (`propext`, `Classical.choice`, `Quot.sound`).
 
-## Why it matters
+## What this is, and why it matters
+
+The headline theorem is `sgd_convergence` in `SGD/Convergence.lean`. For a positive constant step size, a positive horizon, and iterates bounded by radius `R` around the designated minimizer, it bounds the average objective gap by `R² / (2αK) + σR + α(L²R² + σ²)`.
+
+The proof first establishes a one-step squared-distance inequality for the noisy update. The bounded-iterate hypothesis turns the noise and gradient terms into a uniform remainder, after which a general telescoping lemma sums the inequalities and the initial distance is bounded by `R²`.
+
+The oracle model is deterministic: each supplied gradient is within `σ` of an abstract gradient map. Consequently, this is not an in-expectation stochastic theorem, and the bound retains the worst-case floor `σR`. Convexity and smoothness are encoded as first-order assumptions, and boundedness of every iterate is also assumed explicitly.
+
+## Background and motivation
 
 Stochastic gradient descent is the workhorse of modern machine learning, but its iterates use *noisy* gradients rather than the true gradient. The central question is whether that noise still allows convergence — and at what rate. For convex objectives the answer is the classic **O(1/√K)** rate on the averaged optimality gap.
 
